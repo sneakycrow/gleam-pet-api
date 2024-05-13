@@ -6,6 +6,7 @@
 ```sh
 gleam add pet_api
 ```
+
 ```gleam
 import pet_api
 
