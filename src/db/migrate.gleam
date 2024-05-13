@@ -5,15 +5,20 @@ import gleam/option.{type Option, None, unwrap}
 import gleam/string.{replace, trim}
 import simplifile.{
   create_directory_all, create_file, current_directory, describe_error,
+  read_directory,
 }
 
 pub fn run() {
-  todo
-  // TODO: Allow configuring the migrations folder
-  // let _migrations_folder = get_migrations_folder(folder_override: None)
-  // TODO: Get all of the sql files in specified folder
-  // TODO: Sort by date, which the sql is expected to be prefixed with
+  let migrations_folder = get_migrations_folder(folder_override: None)
+  // Get all of the sql files in the migrations folder
+  let assert Ok(_migration_files) = read_directory(migrations_folder)
+  // TODO: Sort the files by date
+  // Files are expected to be named like "2021_01_01_migration_name.sql"
+  // Run each sql file in order
+  // io.debug(migration_files)
   // TODO: Run each sql file in order
+  // TODO: Remove after implementing
+  Nil
 }
 
 pub fn create() {

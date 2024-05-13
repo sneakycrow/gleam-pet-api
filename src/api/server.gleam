@@ -5,7 +5,7 @@ import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
 import mist.{type Connection, type ResponseData}
 
-pub fn index(request: Request(Connection)) -> Response(ResponseData) {
+pub fn index() -> Response(ResponseData) {
   let body = mist.Bytes(bytes_builder.from_string("Welcome to the Pet API"))
 
   response.new(200)
@@ -25,7 +25,7 @@ pub fn start() {
   let assert Ok(_) =
     fn(req: Request(Connection)) -> Response(ResponseData) {
       case request.path_segments(req) {
-        [] -> index(req)
+        [] -> index()
         _ -> not_found()
       }
     }
