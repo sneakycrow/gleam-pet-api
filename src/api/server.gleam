@@ -21,7 +21,8 @@ pub fn not_found() -> Response(ResponseData) {
 }
 
 pub fn start() {
-  let pool = connect.get_pool()
+  // TODO: Pass pool to routes that need it
+  let _pool = connect.get_pool()
   let assert Ok(_) =
     fn(req: Request(Connection)) -> Response(ResponseData) {
       case request.path_segments(req) {
