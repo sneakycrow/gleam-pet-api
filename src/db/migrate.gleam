@@ -23,6 +23,13 @@ type MigrationError {
   FailedToRunMigration
 }
 
+fn to_string(m: MigrationError) -> String {
+  case m {
+    InvalidMigrationName -> "Invalid migration name"
+    FailedToRunMigration -> "Failed to run migration"
+  }
+}
+
 fn migration_from_path(
   file_name: String,
   full_path_dir: String,
@@ -49,6 +56,16 @@ fn sort_migration(a: Migration, b: Migration) -> Order {
 pub fn run() {
   // Get a database connection
   let pool = get_pool()
+  case pool {
+    Ok(pool) -> run_all_migrations(pool)
+    Error(err) -> {
+      io.debug(err)
+      io.println("Failed to connect to the database")
+    }
+  }
+}
+
+fn run_all_migrations(connection: Connection) {
   let migrations_folder = get_migrations_folder(folder_override: None)
   // Get all of the sql files in the migrations folder
   let assert Ok(migration_files) = read_directory(migrations_folder)
@@ -62,9 +79,16 @@ pub fn run() {
     })
   let sorted_migrations = sort(migrations, by: sort_migration)
   // Run each migration consecutively
-  each(sorted_migrations, fn(m) { run_migration(pool, m) })
-  // TODO: Remove after implementing
-  Nil
+  each(sorted_migrations, fn(m) {
+    let result = run_migration(connection, m)
+    case result {
+      Ok(_) -> io.println("Migration successful: " <> m.name)
+      Error(err) -> {
+        io.println("Migration failed: " <> m.name)
+        io.println("Error: " <> to_string(err))
+      }
+    }
+  })
 }
 
 fn run_migration(
@@ -75,9 +99,13 @@ fn run_migration(
   let assert Ok(contents) = read(migration.full_path)
   // Execute the contents of the migration file
   let return_type = dynamic.optional(dynamic.int)
+  io.println("Running migration: " <> migration.full_path)
   case execute(contents, connection, [], return_type) {
     Ok(_) -> Ok(Nil)
-    Error(_) -> Error(FailedToRunMigration)
+    Error(err) -> {
+      io.debug(err)
+      Error(FailedToRunMigration)
+    }
   }
 }
 
