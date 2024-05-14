@@ -1,4 +1,4 @@
-name = "pet_api"
+name = "plant_api"
 version = "1.0.0"
 
 # Fill out these fields if you intend to generate HTML documentation or publish
@@ -6,9 +6,9 @@ version = "1.0.0"
 #
 description = "A simple API for managing evolving digital pets"
 licences = ["Apache-2.0"]
-repository = { type = "github", user = "sneakycrow", repo = "gleam-pet-api" }
+repository = { type = "github", user = "sneakycrow", repo = "gleam-plant-api" }
 links = [
-    { title = "Website", href = "https://sneakycrow.dev/lib/gleam-pet-api" },
+    { title = "Website", href = "https://sneakycrow.dev/lib/gleam-plant-api" },
 ]
 #
 # For a full reference of all the available options, you can have a look at
