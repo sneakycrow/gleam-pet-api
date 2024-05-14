@@ -1,13 +1,16 @@
 import birl.{now, to_naive_date_string}
+import db/connect.{get_pool}
+import gleam/dynamic
 import gleam/erlang.{get_line}
 import gleam/int
 import gleam/io
-import gleam/list.{sort, try_map}
+import gleam/list.{each, filter, sort, try_map}
 import gleam/option.{type Option, None, unwrap}
 import gleam/order.{type Order}
-import gleam/string.{replace, split, trim}
+import gleam/pgo.{type Connection, execute}
+import gleam/string.{ends_with, replace, split, trim}
 import simplifile.{
-  create_directory_all, create_file, current_directory, describe_error,
+  create_directory_all, create_file, current_directory, describe_error, read,
   read_directory,
 }
 
@@ -17,15 +20,23 @@ type Migration {
 
 type MigrationError {
   InvalidMigrationName
+  FailedToRunMigration
 }
 
-fn migration_from_path(path: String) -> Result(Migration, MigrationError) {
-  let parts = split(path, on: "_")
+fn migration_from_path(
+  file_name: String,
+  full_path_dir: String,
+) -> Result(Migration, MigrationError) {
+  let parts = split(file_name, on: "_")
   case parts {
     [date, name, ..] -> {
       // Convert the date to an integer
       let assert Ok(date) = int.parse(date)
-      Ok(Migration(date, name, path))
+      // Remove `.sql.` from the end of the name
+      let name = replace(name, ".sql", "")
+      // Construct the full path
+      let full_path = full_path_dir <> "/" <> file_name
+      Ok(Migration(date, name, full_path))
     }
     _ -> Error(InvalidMigrationName)
   }
@@ -36,20 +47,36 @@ fn sort_migration(a: Migration, b: Migration) -> Order {
 }
 
 pub fn run() {
+  // Get a database connection
+  let pool = get_pool()
   let migrations_folder = get_migrations_folder(folder_override: None)
   // Get all of the sql files in the migrations folder
   let assert Ok(migration_files) = read_directory(migrations_folder)
   // Files are expected to be named like "20210101_migration_name.sql"
   // Parse file paths into Migration structs, then sort by date
-  let assert Ok(migrations) = try_map(migration_files, migration_from_path)
-  io.println("Migrations before sort: \n")
-  io.debug(migrations)
+  let filtered_migrations =
+    filter(migration_files, fn(f) { ends_with(f, ".sql") })
+  let assert Ok(migrations) =
+    try_map(filtered_migrations, fn(m) {
+      migration_from_path(m, migrations_folder)
+    })
   let sorted_migrations = sort(migrations, by: sort_migration)
-  io.println("Migrations after sort: \n")
-  io.debug(sorted_migrations)
-  // TODO: Run each sql file in order
+  // Run each migration consecutively
+  each(sorted_migrations, fn(m) { run_migration(pool, m) })
   // TODO: Remove after implementing
   Nil
+}
+
+fn run_migration(
+  connection: Connection,
+  migration: Migration,
+) -> Result(Nil, MigrationError) {
+  // Read the contents of the migration file
+  let assert Ok(contents) = read(migration.full_path)
+  // Execute the contents of the migration file
+  let return_type = dynamic.optional(dynamic.int)
+  let assert Ok(_) = execute(contents, connection, [], return_type)
+  Ok(Nil)
 }
 
 pub fn create() {
