@@ -4,3 +4,4 @@
 erl_crash.dump
 .env*
 !.env.example
+migrations/*.sql
