@@ -75,8 +75,10 @@ fn run_migration(
   let assert Ok(contents) = read(migration.full_path)
   // Execute the contents of the migration file
   let return_type = dynamic.optional(dynamic.int)
-  let assert Ok(_) = execute(contents, connection, [], return_type)
-  Ok(Nil)
+  case execute(contents, connection, [], return_type) {
+    Ok(_) -> Ok(Nil)
+    Error(_) -> Error(FailedToRunMigration)
+  }
 }
 
 pub fn create() {
