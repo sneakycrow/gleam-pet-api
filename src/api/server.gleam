@@ -1,9 +1,10 @@
-import db/connect
+import api/context.{Context}
+import api/router
 import gleam/bytes_builder
 import gleam/erlang/process
-import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
-import mist.{type Connection, type ResponseData}
+import mist.{type ResponseData}
+import wisp
 
 pub fn index() -> Response(ResponseData) {
   let body = mist.Bytes(bytes_builder.from_string("Welcome to the Pet API"))
@@ -21,15 +22,13 @@ pub fn not_found() -> Response(ResponseData) {
 }
 
 pub fn start() {
-  // TODO: Pass pool to routes that need it
-  let _pool = connect.get_pool()
+  // Start Logger
+  wisp.configure_logger()
+  // Create router
+  let ctx = Context(static_directory: "priv/static", items: [])
+  let handler = router.handle_request(_, ctx)
   let assert Ok(_) =
-    fn(req: Request(Connection)) -> Response(ResponseData) {
-      case request.path_segments(req) {
-        [] -> index()
-        _ -> not_found()
-      }
-    }
+    wisp.mist_handler(handler, "")
     |> mist.new
     |> mist.port(3000)
     |> mist.start_http
